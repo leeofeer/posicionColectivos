@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mapa con Leaflet y API</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+    crossorigin=""
+  />
+  <style>
+    #map {
+      height: 500px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <h1>Mapa con posiciones de colectivos</h1>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  <script>
+    // Inicializa el mapa centrado en un punto específico
+    const map = L.map('map').setView([-25.3, -57.6], 12);
+
+    // Capa base de OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+    }).addTo(map);
+
+    // Función para agregar marcadores al mapa
+    function agregarMarcadores(posiciones) {
+      posiciones.forEach((posicion) => {
+        const marker = L.marker([parseFloat(posicion.lat), parseFloat(posicion.lon)]).addTo(map);
+
+        // Popup con la información de la unidad
+        const popupContent = `
+          <b>Unidad:</b> ${posicion.unidad}<br/>
+          <b>Estado:</b> ${posicion.estado}<br/>
+          <b>Hora:</b> ${posicion.hora}<br/>
+          <b>Señal:</b> ${posicion.sen}<br/>
+          <b>Online:</b> ${posicion.online ? 'Sí' : 'No'}<br/>
+          <b>Aire:</b> ${posicion.aire ? 'Encendido' : 'Apagado'}
+        `;
+
+        marker.bindPopup(popupContent);
+      });
+    }
+
+    // Función para consultar la API y obtener las posiciones
+    async function obtenerPosiciones() {
+      try {
+        // Realiza la petición POST a la API
+        const response = await fetch('https://www.jaha.com.py/api/posicionColectivos', {
+          method: 'POST',
+          body: new URLSearchParams({
+            'linea': '101' // Parámetro de la línea
+          }),
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        });
+
+        // Verifica si la respuesta fue exitosa
+        if (!response.ok) {
+          throw new Error(`Error en la solicitud: ${response.statusText}`);
+        }
+
+        // Convierte la respuesta a JSON
+        const data = await response.json();
+
+        // Llama a la función para agregar los marcadores al mapa
+        agregarMarcadores(data);
+      } catch (error) {
+        console.error('Error al obtener posiciones:', error);
+      }
+    }
+
+    // Llamada inicial a la API para cargar las posiciones en el mapa
+    obtenerPosiciones();
+  </script>
+</body>
+</html>
